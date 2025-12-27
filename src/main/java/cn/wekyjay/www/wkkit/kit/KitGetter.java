@@ -45,6 +45,10 @@ public class KitGetter{
 			// 如果状态为true，直接允许领取
 			if("true".equalsIgnoreCase(lastTimeStr)) {
 				// 继续执行领取逻辑
+			} else if("false".equalsIgnoreCase(lastTimeStr)) {
+				// 如果状态为false，表示礼包已无法领取（次数用完或其他原因）
+				p.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_GET_CANTGET", ChatColor.RED));
+				return false;
 			} else {
 				try {
 					// 解析时间字符串
