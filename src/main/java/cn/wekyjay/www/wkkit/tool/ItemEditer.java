@@ -21,7 +21,7 @@ public class ItemEditer {
 		im.setDisplayName(ChatColor.translateAlternateColorCodes('&', displayName));
 		itemStack.setItemMeta(im);
 	}
-	
+
 	/**
 	 * 设置物品名称
 	 * @param name
@@ -49,7 +49,7 @@ public class ItemEditer {
 		itemStack.setItemMeta(im);
 		return this;
 	}
-	
+
 	public ItemEditer setNBTString(String key, String value) {
 		ReadWriteNBT nbt = NBT.itemStackToNBT(itemStack);
 		nbt.setString(key, value);
@@ -62,18 +62,18 @@ public class ItemEditer {
 		itemStack = NBT.itemStackFromNBT(nbt);
 		return this;
 	}
-	
+
 	public ItemEditer removeNBT(String key) {
 		ReadWriteNBT nbt = NBT.itemStackToNBT(itemStack);
 		nbt.removeKey(key);
 		itemStack = NBT.itemStackFromNBT(nbt);
 		return this;
 	}
-	
+
 	public ItemStack getItemStack() {
 		return itemStack;
 	}
-	
+
 	public String getDisplayName() {
 		return itemStack.getItemMeta().getDisplayName();
 	}
@@ -88,8 +88,13 @@ public class ItemEditer {
 	 * 判断物品是否有wkkit标签，自动适配不同版本
 	 */
 	public static boolean hasWkKitTag(ItemStack item) {
+		if (item == null || item.getType().isAir()) return false;
+
 		String fullVersion = WKTool.getFullVersion();
 		ReadWriteNBT nbt = WKTool.getItemNBT(item);
+
+		if (nbt == null) return false;
+
 		if (WKTool.compareVersion(fullVersion, "1.20.5") >= 0) {
 			// 1.20.5及以上，查components.minecraft:custom_data
 			ReadWriteNBT components = nbt.getCompound("components");
@@ -100,7 +105,8 @@ public class ItemEditer {
 			return false;
 		} else {
 			// 低于1.20.5，直接查根节点
-			return nbt.getCompound("tag").hasTag("wkkit");
+			ReadWriteNBT tag = nbt.getCompound("tag");
+			return tag != null && tag.hasTag("wkkit");
 		}
 	}
 
@@ -108,8 +114,13 @@ public class ItemEditer {
 	 * 获取物品wkkit标签的值，自动适配不同版本
 	 */
 	public static String getWkKitTagValue(ItemStack item) {
+		if (item == null || item.getType().isAir()) return null;
+
 		String fullVersion = WKTool.getFullVersion();
 		ReadWriteNBT nbt = WKTool.getItemNBT(item);
+
+		if (nbt == null) return null;
+
 		if (WKTool.compareVersion(fullVersion, "1.20.5") >= 0) {
 			// 1.20.5及以上
 			ReadWriteNBT components = nbt.getCompound("components");
@@ -122,8 +133,9 @@ public class ItemEditer {
 			return null;
 		} else {
 			// 低于1.20.5
-			if (nbt.getCompound("tag").hasTag("wkkit")) {
-				return nbt.getCompound("tag").getString("wkkit");
+			ReadWriteNBT tag = nbt.getCompound("tag");
+			if (tag != null && tag.hasTag("wkkit")) {
+				return tag.getString("wkkit");
 			}
 			return null;
 		}
