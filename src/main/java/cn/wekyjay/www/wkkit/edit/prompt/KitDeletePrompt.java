@@ -1,44 +1,93 @@
 package cn.wekyjay.www.wkkit.edit.prompt;
 
+import cn.handyplus.lib.adapter.HandySchedulerUtil;
 import cn.handyplus.lib.adapter.PlayerSchedulerUtil;
-import cn.wekyjay.www.wkkit.WkKit;
-import org.bukkit.conversations.*;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
-public class KitDeletePrompt {
-	public static void newConversation(Player player, String kitname) {
-		Conversation conversation = new ConversationFactory(WkKit.getWkKit()) // 构建一个会话
-	            .withFirstPrompt(new KitDeletePrompt_1()) // 设置在所有生成的对话中使用的第一个提示。
-	            .withTimeout(60)
-	            .buildConversation(player);
-		conversation.getContext().setSessionData("kitname", kitname);
-		conversation.begin();
-	}
-}
-class KitDeletePrompt_1 extends ValidatingPrompt{
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
-	@Override
-	public String getPromptText(ConversationContext context) {
-		return "你是否要删除§e" + context.getSessionData("kitname") + "§f?(Y/N)";
-	}
-
-	@Override
-	protected boolean isInputValid(ConversationContext context, String input) {
-		if(input.equalsIgnoreCase("Y") || input.equalsIgnoreCase("N")) return true; 
-		return false; 
-	}
-
-	@Override
-	protected Prompt acceptValidatedInput(ConversationContext context, String input) {
-		if(input.equalsIgnoreCase("Y")) {
-
-			PlayerSchedulerUtil.performCommand((Player)context.getForWhom(), "wk delete " + context.getSessionData("kitname"));
-
-			context.getForWhom().sendRawMessage("§a已成功删除礼包 - " + context.getSessionData("kitname"));
-		}else {
-			context.getForWhom().sendRawMessage("§c你取消了礼包删除");
+/**
+ * Folia 兼容的礼包删除确认系统
+ * 替代 Conversation API（在 Folia 中不可用）
+ */
+public class KitDeletePrompt implements Listener {
+	
+	// 存储等待删除确认的玩家
+	private static final Map<UUID, DeleteSession> waitingDeletes = new ConcurrentHashMap<>();
+	
+	private static class DeleteSession {
+		private final String kitname;
+		private final long startTime;
+		
+		public DeleteSession(String kitname) {
+			this.kitname = kitname;
+			this.startTime = System.currentTimeMillis();
 		}
-		return Prompt.END_OF_CONVERSATION;
+		
+		public boolean isExpired() {
+			return System.currentTimeMillis() - startTime > 60000; // 60秒超时
+		}
 	}
 	
+	public static void newConversation(Player player, String kitname) {
+		DeleteSession session = new DeleteSession(kitname);
+		waitingDeletes.put(player.getUniqueId(), session);
+		player.sendMessage("你是否要删除§e" + kitname + "§f? (输入 Y 确认 / N 取消)");
+		
+		// 60秒后自动清理
+		HandySchedulerUtil.runTaskLaterAsynchronously(() -> {
+			DeleteSession current = waitingDeletes.get(player.getUniqueId());
+			if (current != null && current.isExpired()) {
+				waitingDeletes.remove(player.getUniqueId());
+				player.sendMessage("§c确认超时，已取消删除。");
+			}
+		}, 20L * 60);
+	}
+	
+	/**
+	 * 监听玩家聊天输入
+	 */
+	@EventHandler(priority = EventPriority.LOWEST)
+	public void onPlayerChat(AsyncPlayerChatEvent e) {
+		Player player = e.getPlayer();
+		DeleteSession session = waitingDeletes.get(player.getUniqueId());
+		
+		if (session == null) return; // 玩家不在删除确认中
+		
+		// 取消聊天事件
+		e.setCancelled(true);
+		
+		String input = e.getMessage();
+		
+		if (!input.equalsIgnoreCase("Y") && !input.equalsIgnoreCase("N")) {
+			player.sendMessage("§c输入无效！请输入 Y 或 N。");
+			return;
+		}
+		
+		if (input.equalsIgnoreCase("Y")) {
+			// 执行删除命令
+			PlayerSchedulerUtil.performCommand(player, "wk delete " + session.kitname);
+			player.sendMessage("§a已成功删除礼包 - " + session.kitname);
+		} else {
+			player.sendMessage("§c你取消了礼包删除");
+		}
+		
+		// 清理会话
+		waitingDeletes.remove(player.getUniqueId());
+	}
+	
+	/**
+	 * 玩家退出时清理会话
+	 */
+	@EventHandler
+	public void onPlayerQuit(PlayerQuitEvent e) {
+		waitingDeletes.remove(e.getPlayer().getUniqueId());
+	}
 }

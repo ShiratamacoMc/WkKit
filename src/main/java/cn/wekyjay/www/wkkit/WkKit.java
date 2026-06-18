@@ -140,6 +140,12 @@ public class WkKit extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new KitMenuListener(),this);
         Bukkit.getPluginManager().registerEvents(EditGUI.getEditGUI(),this);
         Bukkit.getPluginManager().registerEvents(new EditKit(),this);
+        // 注册 GUI 会话管理器（Folia 优化：避免 getHolder() 卡顿）
+        Bukkit.getPluginManager().registerEvents(new cn.wekyjay.www.wkkit.invholder.GUISessionManager(),this);
+        // 注册 Folia 兼容的输入提示系统（替代 Conversation API）
+        Bukkit.getPluginManager().registerEvents(new cn.wekyjay.www.wkkit.edit.prompt.KitFlagPrompt(),this);
+        Bukkit.getPluginManager().registerEvents(new cn.wekyjay.www.wkkit.edit.prompt.KitDeletePrompt(),this);
+        Bukkit.getPluginManager().registerEvents(new cn.wekyjay.www.wkkit.edit.prompt.GroupPrompt(),this);
 
         //插件检测
         MessageManager.sendMessageWithPrefix("");

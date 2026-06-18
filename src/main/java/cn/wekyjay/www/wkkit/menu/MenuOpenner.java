@@ -5,7 +5,8 @@ import cn.wekyjay.www.wkkit.api.PlayersKitRefreshEvent;
 import cn.wekyjay.www.wkkit.config.LangConfigLoader;
 import cn.wekyjay.www.wkkit.config.MenuConfigLoader;
 import cn.wekyjay.www.wkkit.data.playerdata.PlayerData_MySQL;
-import cn.wekyjay.www.wkkit.invholder.MenuHolder;
+import cn.wekyjay.www.wkkit.invholder.GUISessionManager;
+import cn.wekyjay.www.wkkit.invholder.GUISessionManager.GUIType;
 import cn.wekyjay.www.wkkit.kit.Kit;
 import cn.wekyjay.www.wkkit.tool.CronManager;
 import cn.wekyjay.www.wkkit.tool.MessageManager;
@@ -39,10 +40,11 @@ public class MenuOpenner {
 		} 
 		String playername = p.getName();
 		Inventory inv;
+		// 使用 null 替代 MenuHolder，完全避免 getHolder()
 		if(MenuManager.getType(menuname).equals(InventoryType.CHEST)){
-			inv = Bukkit.createInventory(new MenuHolder(menuname), MenuManager.getInvs().get(menuname).getSize(), MenuManager.getTitle(menuname));
+			inv = Bukkit.createInventory(null, MenuManager.getInvs().get(menuname).getSize(), MenuManager.getTitle(menuname));
 		}else {
-			inv = Bukkit.createInventory(new MenuHolder(menuname), MenuManager.getType(menuname), MenuManager.getTitle(menuname));
+			inv = Bukkit.createInventory(null, MenuManager.getType(menuname), MenuManager.getTitle(menuname));
 		}
 
 
@@ -317,6 +319,9 @@ public class MenuOpenner {
 				inv.clear(i);
 			}
 		}
+
+		// 注册 GUI 会话并打开菜单
+		GUISessionManager.registerGUI(p, GUIType.KIT_MENU, "menuname", menuname);
 		p.openInventory(inv);
 		
 	}

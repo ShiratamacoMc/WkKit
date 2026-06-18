@@ -161,13 +161,13 @@ public class KitCommand implements CommandExecutor{
 			Player p = (Player)sender;
 			if(args.length > 1){
 				if(Kit.getKitNames().contains(args[1])){
-					p.openInventory(new EditKit().editKit(args[1]));
+					new EditKit().openEditKit(p, args[1]);
 				}else{
 					MessageManager.sendMessage(LangConfigLoader.getStringWithPrefix("KIT_DELETE_NONEXIST",ChatColor.YELLOW),p);
 				}
 				return true;
 			}
-			p.openInventory(EditGUI.getEditGUI().getEditInv());
+			EditGUI.getEditGUI().openEditInv(p);
 			return true;
 		}
 		
